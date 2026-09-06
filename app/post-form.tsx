@@ -1,0 +1,68 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+export default function PostForm() {
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || !content.trim() || saving) return;
+
+    setSaving(true);
+    setError("");
+    const { error } = await supabase
+      .from("posts")
+      .insert({ title: title.trim(), content: content.trim() });
+    setSaving(false);
+
+    if (error) {
+      setError("등록에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    setTitle("");
+    setContent("");
+    router.refresh();
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mb-10 border-2 border-black bg-white p-5 shadow-[5px_5px_0_0_#000]"
+    >
+      <h2 className="mb-4 text-base font-bold">질문 남기기</h2>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="제목"
+        maxLength={100}
+        className="mb-3 w-full border-2 border-black px-3 py-2 text-sm outline-none focus:bg-[#fbfbe8]"
+      />
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="궁금한 내용을 적어주세요"
+        maxLength={2000}
+        rows={4}
+        className="mb-3 w-full resize-none border-2 border-black px-3 py-2 text-sm outline-none focus:bg-[#fbfbe8]"
+      />
+      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-neutral-500">작성자: 익명</span>
+        <button
+          type="submit"
+          disabled={saving}
+          className="border-2 border-black bg-[#c9f24d] px-4 py-2 text-sm font-bold shadow-[3px_3px_0_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-50"
+        >
+          {saving ? "등록 중..." : "등록"}
+        </button>
+      </div>
+    </form>
+  );
+}
