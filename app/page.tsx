@@ -1,5 +1,6 @@
 import { supabase, type Post } from "@/lib/supabase";
 import PostForm from "./post-form";
+import CommentForm from "./comment-form";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,9 @@ function formatDate(iso: string) {
 export default async function Home() {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, content, created_at")
-    .order("id", { ascending: false });
+    .select("id, title, content, created_at, comments(id, content, created_at)")
+    .order("id", { ascending: false })
+    .order("id", { ascending: true, referencedTable: "comments" });
 
   const posts: Post[] = data ?? [];
 
@@ -64,6 +66,25 @@ export default async function Home() {
             <p className="mt-3 text-xs text-neutral-400">
               익명 · {formatDate(post.created_at)}
             </p>
+
+            <div className="mt-4 border-t-2 border-dashed border-neutral-300 pt-3">
+              <p className="text-xs font-bold text-neutral-500">
+                댓글 {post.comments.length}
+              </p>
+              <ul className="mt-2 space-y-2">
+                {post.comments.map((comment) => (
+                  <li key={comment.id} className="bg-[#f6f6f0] px-3 py-2">
+                    <p className="whitespace-pre-wrap text-xs text-neutral-700">
+                      {comment.content}
+                    </p>
+                    <p className="mt-1 text-[11px] text-neutral-400">
+                      익명 · {formatDate(comment.created_at)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <CommentForm postId={post.id} />
+            </div>
           </li>
         ))}
       </ul>
