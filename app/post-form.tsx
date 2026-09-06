@@ -8,26 +8,46 @@ export default function PostForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<"idle" | "saving" | "answering">("idle");
   const [error, setError] = useState("");
+
+  const busy = status !== "idle";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !content.trim() || saving) return;
+    if (!title.trim() || !content.trim() || busy) return;
 
-    setSaving(true);
+    setStatus("saving");
     setError("");
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("posts")
-      .insert({ title: title.trim(), content: content.trim() });
-    setSaving(false);
+      .insert({ title: title.trim(), content: content.trim() })
+      .select("id")
+      .single();
 
-    if (error) {
+    if (error || !data) {
+      setStatus("idle");
       setError("등록에 실패했어요. 잠시 후 다시 시도해 주세요.");
       return;
     }
+
     setTitle("");
     setContent("");
+    setStatus("answering");
+    router.refresh();
+
+    // AI 답변은 실패해도 글은 이미 올라간 상태라 조용히 넘어간다.
+    try {
+      await fetch("/api/ai-comment", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ postId: data.id }),
+      });
+    } catch {
+      // 무시
+    }
+
+    setStatus("idle");
     router.refresh();
   }
 
@@ -54,13 +74,17 @@ export default function PostForm() {
       />
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-neutral-500">작성자: 익명</span>
+        <span className="text-xs text-neutral-500">
+          {status === "answering"
+            ? "🤖 AI가 답변을 작성하고 있어요..."
+            : "작성자: 익명 · 등록하면 AI가 답변을 달아줘요"}
+        </span>
         <button
           type="submit"
-          disabled={saving}
+          disabled={busy}
           className="border-2 border-black bg-[#c9f24d] px-4 py-2 text-sm font-bold shadow-[3px_3px_0_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-50"
         >
-          {saving ? "등록 중..." : "등록"}
+          {status === "saving" ? "등록 중..." : "등록"}
         </button>
       </div>
     </form>

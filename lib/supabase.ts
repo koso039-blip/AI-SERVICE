@@ -4,6 +4,7 @@ export type Comment = {
   id: number;
   content: string;
   created_at: string;
+  is_ai: boolean;
 };
 
 export type Post = {

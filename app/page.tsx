@@ -17,7 +17,7 @@ function formatDate(iso: string) {
 export default async function Home() {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, content, created_at, comments(id, content, created_at)")
+    .select("id, title, content, created_at, comments(id, content, created_at, is_ai)")
     .order("id", { ascending: false })
     .order("id", { ascending: true, referencedTable: "comments" });
 
@@ -77,12 +77,12 @@ export default async function Home() {
               </p>
               <ul className="mt-2 space-y-2">
                 {post.comments.map((comment) => (
-                  <li key={comment.id} className="bg-[#f6f6f0] px-3 py-2">
+                  <li key={comment.id} className={comment.is_ai ? "border-l-4 border-[#c9f24d] bg-[#f4fbe4] px-3 py-2" : "bg-[#f6f6f0] px-3 py-2"}>
                     <p className="whitespace-pre-wrap text-xs text-neutral-700">
                       {comment.content}
                     </p>
                     <p className="mt-1 text-[11px] text-neutral-400">
-                      익명 · {formatDate(comment.created_at)}
+                      {comment.is_ai ? "🤖 AI 도우미" : "익명"} · {formatDate(comment.created_at)}
                     </p>
                   </li>
                 ))}
